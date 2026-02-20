@@ -2,9 +2,9 @@
 
 from kivy.app import App
 from kivy.core.window import Window
-from widgets import TEAL, MainWindow
+from widgets import GREY, MainWindow
 
-Window.clearcolor = TEAL
+Window.clearcolor = GREY
 
 
 class TodoApp(App):

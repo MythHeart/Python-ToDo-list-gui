@@ -1,8 +1,15 @@
 #!/usr/bin/env python3
 
 from kivy.uix.floatlayout import FloatLayout
+from kivy.effects.scroll import ScrollEffect
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.button import Button
+from kivy.uix.floatlayout import FloatLayout
+from kivy.uix.label import Label
+from kivy.uix.scrollview import ScrollView
+from kivy.uix.textinput import TextInput
 
-TEAL = (0, 0.31, 0.31, 1.0)
+GREY = (61/255, 61/255, 61/255, 1.0)
 
 
 class MainWindow(FloatLayout):
