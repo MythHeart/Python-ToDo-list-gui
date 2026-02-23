@@ -10,8 +10,74 @@ from kivy.uix.scrollview import ScrollView
 from kivy.uix.textinput import TextInput
 
 GREY = (61/255, 61/255, 61/255, 1.0)
+YELLOW = (1.0, 0.85, 0, 1.0)
+LIGHT_TEAL = (0, 0.41, 0.41, 1.0)
 
 
 class MainWindow(FloatLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        todo_list_container = BoxLayout (
+                orientation="vertical",
+                size_hint=[.85, None],
+                height=350,
+                pos_hint={"center_x":0.5, "top":0.85},
+                spacing=10
+                )
+        title_label = Label(
+                font_size=35,
+                text="[b]ToDo App[/b]",
+                size_hint=[1, None],
+                markup=True,
+                )
+        self.add_widget(todo_list_container)
+
+        self.inputframe = InputFrame(self)
+
+        todo_list_container.add_widget(title_label)
+        todo_list_container.add_widget(self.inputframe)
+
+class Input(TextInput):
+    max_length = 99
+    multiline = False
+
+    def insert_text(self, *args):
+        if len(self.text) < self.max_length:
+            super().insert_text(*args)
+
+class NoBackgroundButton(Button):
+    background_down = ""
+    background_normal = ""
+    background_disabled = ""
+
+class YellowButton(NoBackgroundButton):
+    background_color = YELLOW
+    color = GREY
+
+class LightTealButton(NoBackgroundButton):
+    background_color = LIGHT_TEAL
+
+class InputFrame(BoxLayout):
+    spacing = 8
+    height = 45
+    size_hint_y = None
+
+    def __init__(self, main_window, **kwargs):
+        super().__init__(**kwargs)
+
+        self.todo_input_widget = Input(
+                hint_text="Enter an activity",
+                font_size=22
+                )
+        self.todo_input_widget.padding = [10, 10, 10, 10]
+        add_item_button = YellowButton(
+                width=self.height,
+                size_hint=[None, 1], text="+"
+                )
+        add_item_button.bind(
+                on_release=lambda *args: main_window.add_todo_item(
+                    self.todo_input_widget.text
+                    )
+                )
+        self.add_widget(self.todo_input_widget)
+        self.add_widget(add_item_button)
