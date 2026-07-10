@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-from kivy.uix.floatlayout import FloatLayout
 from kivy.effects.scroll import ScrollEffect
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
@@ -9,70 +8,10 @@ from kivy.uix.label import Label
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.textinput import TextInput
 
+
 GREY = (61 / 255, 61 / 255, 61 / 255, 1.0)
 YELLOW = (1.0, 0.85, 0, 1.0)
 LIGHT_TEAL = (0, 0.41, 0.41, 1.0)
-
-
-class MainWindow(FloatLayout):
-    def __init__(self, db, **kwargs):
-        super().__init__(**kwargs)
-        self.db = db
-        todo_list_container = BoxLayout(
-            orientation="vertical",
-            size_hint=[0.85, None],
-            height=350,
-            pos_hint={"center_x": 0.5, "top": 0.85},
-            spacing=10,
-        )
-        title_label = Label(
-            font_size=35,
-            text="[b]ToDo App[/b]",
-            size_hint=[1, None],
-            markup=True,
-        )
-        self.add_widget(todo_list_container)
-        self.inputframe = InputFrame(self)
-        self.show_existing_items()
-
-        todo_list_container.add_widget(title_label)
-        todo_list_container.add_widget(self.inputframe)
-
-    def add_todo_item(self, todo_item):
-        if todo_item.isspace() or todo_item == "":
-            return
-        self.db.add_todo_item(todo_item)
-        self.todoitems.clear_widgets()
-        self.show_existing_items()
-        self.inputframe.todo_input_widget.text = ""
-
-    def delete_todo_item(self, item_id):
-        for item in self.todoitems.children:
-            if item.item_id == item_id:
-                self.db.delete_todo_item(item_id)
-                item.parent.remove_widget(item)
-
-    def mark_as_done(self, item_id):
-        for item in self.todoitems.children:
-            if item.item_id == item_id:
-                self.db.mark_as_done(item_id)
-                item.mark_done_button.disabled = True
-
-    def show_existing_items(self):
-        items = self.db.retrieve_all_items()
-        for item_data in reversed(items):
-            item_id, todo_item, done = item_data
-            item_widget = Item(self, item_id, todo_item, done)
-            self.todoitems.add_widget(item_widget)
-
-
-class Input(TextInput):
-    max_length = 99
-    multiline = False
-
-    def insert_text(self, *args):
-        if len(self.text) < self.max_length:
-            super().insert_text(*args)
 
 
 class NoBackgroundButton(Button):
@@ -90,6 +29,10 @@ class LightTealButton(NoBackgroundButton):
     background_color = LIGHT_TEAL
 
 
+class Input(TextInput):
+    pass
+
+
 class InputFrame(BoxLayout):
     spacing = 8
     height = 45
@@ -98,13 +41,123 @@ class InputFrame(BoxLayout):
     def __init__(self, main_window, **kwargs):
         super().__init__(**kwargs)
 
-        self.todo_input_widget = Input(hint_text="Enter an activity", font_size=22)
+        self.main_window = main_window
+
+        self.todo_input_widget = Input(hint_text="Enter a todo activity", font_size=22)
+
         self.todo_input_widget.padding = [10, 10, 10, 10]
-        add_item_button = YellowButton(width=self.height, size_hint=[None, 1], text="+")
-        add_item_button.bind(
+
+        add_button = YellowButton(text="+", width=self.height, size_hint=(None, 1))
+
+        add_button.bind(
             on_release=lambda *args: main_window.add_todo_item(
                 self.todo_input_widget.text
             )
         )
+
         self.add_widget(self.todo_input_widget)
-        self.add_widget(add_item_button)
+        self.add_widget(add_button)
+
+
+class ScrollableList(ScrollView):
+    effect_cls = ScrollEffect
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+        self.height = 400
+
+        self.container = BoxLayout(orientation="vertical", spacing=5, size_hint_y=None)
+
+        self.container.bind(minimum_height=self.container.setter("height"))
+
+        self.add_widget(self.container)
+
+
+class Item(BoxLayout):
+    size_hint = (1, None)
+    spacing = 5
+
+    def __init__(self, main_window, item_id, todo_item, done=False, **kwargs):
+        super().__init__(**kwargs)
+
+        self.item_id = item_id
+        self.height = 40
+
+        description = LightTealButton(text=todo_item, size_hint=(0.6, 1))
+
+        self.mark_done_button = YellowButton(
+            text="Done", size_hint=(None, 1), width=100, disabled=done
+        )
+
+        self.mark_done_button.bind(
+            on_release=lambda *args: main_window.mark_as_done(item_id)
+        )
+
+        remove_button = YellowButton(text="-", size_hint=(None, 1), width=40)
+
+        remove_button.bind(
+            on_release=lambda *args: main_window.delete_todo_item(item_id)
+        )
+
+        self.add_widget(description)
+        self.add_widget(self.mark_done_button)
+        self.add_widget(remove_button)
+
+
+class MainWindow(FloatLayout):
+    def __init__(self, db, **kwargs):
+        super().__init__(**kwargs)
+
+        self.db = db
+
+        layout = BoxLayout(orientation="vertical", padding=10, spacing=10)
+
+        title = Label(text="Todo App", font_size=32, size_hint_y=None, height=50)
+
+        self.inputframe = InputFrame(self)
+
+        self.todo_list = ScrollableList()
+
+        layout.add_widget(title)
+        layout.add_widget(self.inputframe)
+        layout.add_widget(self.todo_list)
+
+        self.add_widget(layout)
+
+        self.show_existing_items()
+
+    def add_todo_item(self, todo_item):
+        if todo_item.strip():
+            item_id = self.db.add_item(todo_item)
+
+            self.todo_list.container.add_widget(Item(self, item_id, todo_item))
+
+            self.inputframe.todo_input_widget.text = ""
+
+    def show_existing_items(self):
+
+        for item in self.db.get_items():
+            item_id = item[0]
+            text = item[1]
+            done = item[2]
+
+            self.todo_list.container.add_widget(Item(self, item_id, text, done))
+
+    def delete_todo_item(self, item_id):
+
+        self.db.delete_item(item_id)
+
+        for widget in self.todo_list.container.children:
+            if widget.item_id == item_id:
+                self.todo_list.container.remove_widget(widget)
+                break
+
+    def mark_as_done(self, item_id):
+
+        self.db.mark_as_done(item_id)
+
+        for widget in self.todo_list.container.children:
+            if widget.item_id == item_id:
+                widget.mark_done_button.disabled = True
+                break

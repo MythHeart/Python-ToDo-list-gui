@@ -26,13 +26,13 @@ class Database:
         self.db.commit()
         return result
 
-    def add_todo_item(self, item):
+    def add_item(self, item):
         self._run_query(
             "INSERT INTO todo VALUES (NULL, ?, 0);",
             item,
         )
 
-    def delete_todo_item(self, item_id):
+    def delete_item(self, item_id):
         self._run_query(
             "DELETE FROM todo WHERE item_id=(?);",
             item_id,
@@ -44,7 +44,7 @@ class Database:
             item_id,
         )
 
-    def retrieve_all_items(self):
+    def get_items(self):
         result = self._run_query("SELECT * FROM todo;")
         return result.fetchall()
 
